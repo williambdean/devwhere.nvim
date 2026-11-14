@@ -25,7 +25,7 @@ local dw = vim.fn.stdpath("data") .. "/lazy/devwhere.nvim"
 if not vim.uv.fs_stat(dw) then
   vim.fn.system({
     "git", "clone", "--filter=blob:none",
-    "https://github.com/williamdean/devwhere.nvim", dw,
+    "https://github.com/williambdean/devwhere.nvim", dw,
   })
 end
 vim.opt.rtp:prepend(dw)
