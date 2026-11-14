@@ -53,7 +53,9 @@ Given `require("devwhere").dir("octo.nvim")`, the first match wins:
    or worktree of that repo, that directory wins. Worktrees are found by
    following git's own worktree link, so they work no matter where they
    live, inside the repo or in `/tmp`
-5. **nil**: nothing special here. The meaning of nil depends on your
+5. **Per-repo fallback**: `repos[name].fallback`, a canonical checkout for
+   private repos that have no published copy to fall back to
+6. **nil**: nothing special here. The meaning of nil depends on your
    manager wiring, but the intent is always "use the manager's installed
    copy like devwhere was never involved"
 
@@ -71,7 +73,9 @@ flowchart LR
     CB -- "no" --> GIT["git top level of cwd,<br/>follow worktree links<br/>to the main repo"]
     GIT --> MATCH{"main repo name<br/>matches?"}
     MATCH -- "yes" --> CWDP["cwd's top level [cwd]"]
-    MATCH -- "no" --> NONE["nil [none]<br/>manager's copy"]
+    MATCH -- "no" --> FB{"repos[name].fallback<br/>exists?"}
+    FB -- "yes" --> FBP["path [fallback]"]
+    FB -- "no" --> NONE["nil [none]<br/>manager's copy"]
 ```
 
 ## Usage
@@ -86,6 +90,7 @@ require("devwhere").setup {
     --   dir = "~/somewhere/else", -- static pin
     --   detect = false,           -- never use cwd for this repo
     --   repo_name = "octo",       -- when dir names differ from plugin names
+    --   fallback = "~/src/octo",  -- canonical checkout for private repos
     -- },
   },
   on_resolve = nil, -- fun(ctx): string?, the escape hatch

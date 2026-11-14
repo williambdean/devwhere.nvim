@@ -13,7 +13,8 @@
 ---   3. on_resolve callback            full context, may return a path
 ---   4. cwd detection                  when cwd belongs to a checkout or
 ---                                     worktree of that repo, use that dir
----   5. nil                            nothing special, use the manager's
+---   5. repos[name].fallback           canonical checkout, when configured
+---   6. nil                            nothing special, use the manager's
 ---                                     installed copy
 
 local M = {}
@@ -22,6 +23,8 @@ local M = {}
 ---@field dir? string static pin, skips all detection
 ---@field detect? boolean set false to veto cwd detection for this repo
 ---@field repo_name? string repo dir name when it differs from plugin name
+---@field fallback? string canonical checkout to use when nothing else
+---   matches, e.g. for private repos that have no published copy
 
 ---@class Devwhere.ResolveCtx
 ---@field name string plugin name passed to dir()
@@ -30,7 +33,7 @@ local M = {}
 ---@field root? string git top level of cwd, when inside a repo
 ---@field repo? string main repo of root, worktree links followed
 
----@alias Devwhere.Source "pinned"|"env"|"callback"|"cwd"|"none"
+---@alias Devwhere.Source "pinned"|"env"|"callback"|"cwd"|"fallback"|"none"
 
 ---@class Devwhere.Status
 ---@field name string
@@ -190,6 +193,15 @@ local function resolve(name)
       source = "cwd",
       extra = { repo = repo },
     }, name, rname)
+  end
+
+  local fallback = opt.fallback
+  if fallback and vim.uv.fs_stat(vim.fs.normalize(fallback)) then
+    return status(
+      { dir = vim.fs.normalize(fallback), source = "fallback" },
+      name,
+      rname
+    )
   end
 
   return status({ dir = nil, source = "none" }, name, rname)

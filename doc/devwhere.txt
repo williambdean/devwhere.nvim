@@ -13,37 +13,39 @@ Resolution order, first match wins:
   3. on_resolve(ctx) callback
   4. the working directory, when it belongs to a checkout or worktree of
      the repo (worktrees are found via git's own worktree link)
-  5. the first existing <root>/<repo_name> across config.roots
-  6. <root>/<repo_name> even when missing, so consumers fail clearly
+  5. repos[name].fallback canonical checkout, when configured
+  6. nil, nothing special; the plugin manager's installed copy is used
 
 ==============================================================================
 FUNCTIONS                                                *devwhere-functions*
 
 devwhere.setup({opts})                                    *devwhere.setup()*
     Configure devwhere. All keys are optional:
-      roots      string[]  where canonical checkouts live
-                           (default: { "~/src" })
       notify     boolean   notify when cwd detection picks a copy
                            (default: true)
-      repos      table     per-repo overrides, keys are plugin names:
+      repos      table     per-repo overrides and the :DevStatus
+                           registry, keys are plugin names:
                            .dir        string  static pin
                            .detect     boolean false vetoes cwd detection
                            .repo_name  string  repo dir name when it
                                                differs from the plugin name
+                           .fallback   string  canonical checkout used
+                                               when nothing else matches
       on_resolve function  fun(ctx): string?, escape hatch. ctx has
                            name, repo_name, cwd, root, repo. Return a
                            path to override the default order, or nil.
 
 devwhere.dir({name})                                        *devwhere.dir()*
-    Resolve a repo name to its dev directory and return the path string.
+    Resolve a repo name to its dev directory and return the path, or nil
+    when no local checkout should be used.
 
 devwhere.status({name})                                  *devwhere.status()*
     Same resolution, returning the full table:
       name       string  the name you passed
       repo_name  string  the repo dir name used for matching
-      dir        string  the resolved path
-      source     string  "pinned" | "env" | "callback" | "cwd" | "root"
-                         | "missing"
+      dir        string  the resolved path, or nil when source is "none"
+      source     string  "pinned" | "env" | "callback" | "cwd"
+                         | "fallback" | "none"
       repo       string  main repo, when source is "cwd"
       env_key    string  env variable, when source is "env"
 
