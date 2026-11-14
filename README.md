@@ -121,6 +121,11 @@ Commands:
 :DevStatus          " audit every repo registered in repos
 ```
 
+`:DevStatus` colors the source tag, so an audit shows at a glance which
+repos are running from a checkout you are standing in versus a fallback:
+
+![`:DevStatus` audit, with the octo.nvim worktree active](https://raw.githubusercontent.com/williambdean/devwhere.nvim/screenshots/devstatus.png)
+
 ## Wiring it into your plugin manager
 
 The glue is one expression per manager, and it lives in your config, not
