@@ -1,0 +1,68 @@
+*devwhere.txt* Resolve which local checkout of a repo Neovim should load
+
+==============================================================================
+INTRODUCTION                                                    *devwhere*
+
+devwhere.nvim answers one question: given a repository name, which local
+checkout or worktree should Neovim load right now? It is manager agnostic
+and returns a directory path, nothing more.
+
+Resolution order, first match wins:
+  1. repos[name].dir static pin
+  2. $NVIM_DEV_<REPO_NAME> env override
+  3. on_resolve(ctx) callback
+  4. the working directory, when it belongs to a checkout or worktree of
+     the repo (worktrees are found via git's own worktree link)
+  5. the first existing <root>/<repo_name> across config.roots
+  6. <root>/<repo_name> even when missing, so consumers fail clearly
+
+==============================================================================
+FUNCTIONS                                                *devwhere-functions*
+
+devwhere.setup({opts})                                    *devwhere.setup()*
+    Configure devwhere. All keys are optional:
+      roots      string[]  where canonical checkouts live
+                           (default: { "~/src" })
+      notify     boolean   notify when cwd detection picks a copy
+                           (default: true)
+      repos      table     per-repo overrides, keys are plugin names:
+                           .dir        string  static pin
+                           .detect     boolean false vetoes cwd detection
+                           .repo_name  string  repo dir name when it
+                                               differs from the plugin name
+      on_resolve function  fun(ctx): string?, escape hatch. ctx has
+                           name, repo_name, cwd, root, repo. Return a
+                           path to override the default order, or nil.
+
+devwhere.dir({name})                                        *devwhere.dir()*
+    Resolve a repo name to its dev directory and return the path string.
+
+devwhere.status({name})                                  *devwhere.status()*
+    Same resolution, returning the full table:
+      name       string  the name you passed
+      repo_name  string  the repo dir name used for matching
+      dir        string  the resolved path
+      source     string  "pinned" | "env" | "callback" | "cwd" | "root"
+                         | "missing"
+      repo       string  main repo, when source is "cwd"
+      env_key    string  env variable, when source is "env"
+
+==============================================================================
+COMMANDS                                                 *devwhere-commands*
+
+:DevDir {repo}                                                 *:DevDir*
+    Print the path devwhere resolves for {repo}.
+
+:DevStatus {repo}                                          *:DevStatus*
+    Print the resolved path plus why: name, repo_name, dir, source, and
+    repo or env_key when relevant.
+
+==============================================================================
+ENVIRONMENT                                            *devwhere-environment*
+
+NVIM_DEV_<NAME>    Per-repo override. The repo name is uppercased with
+                   dots and dashes replaced by underscores, so octo.nvim
+                   becomes NVIM_DEV_OCTO_NVIM.
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:
