@@ -131,19 +131,6 @@ local function env_key(name)
   return "NVIM_DEV_" .. name:upper():gsub("[%.%-]", "_")
 end
 
----@param base table
----@param name string
----@param rname string
----@return Devwhere.Status
-local function status(base, name, rname)
-  return vim.tbl_extend("force", {
-    name = name,
-    repo_name = rname,
-    dir = base.dir,
-    source = base.source,
-  }, base.extra or {})
-end
-
 --- Resolve a repo name to the status of its local checkout, if any.
 ---@param name string
 ---@return Devwhere.Status
@@ -151,18 +138,27 @@ local function resolve(name)
   local opt = repo_opt(name)
   local rname = repo_name(name)
 
+  ---@param dir? string
+  ---@param source Devwhere.Source
+  ---@param extra table?
+  ---@return Devwhere.Status
+  local function result(dir, source, extra)
+    return vim.tbl_extend("force", {
+      name = name,
+      repo_name = rname,
+      dir = dir,
+      source = source,
+    }, extra or {})
+  end
+
   if opt.dir then
-    return status({ dir = opt.dir, source = "pinned" }, name, rname)
+    return result(opt.dir, "pinned")
   end
 
   local key = env_key(rname)
   local override = vim.env[key]
   if override and override ~= "" and vim.uv.fs_stat(override) then
-    return status({
-      dir = vim.fs.normalize(override),
-      source = "env",
-      extra = { env_key = key },
-    }, name, rname)
+    return result(vim.fs.normalize(override), "env", { env_key = key })
   end
 
   local cwd = vim.fs.normalize(vim.fn.getcwd())
@@ -178,7 +174,7 @@ local function resolve(name)
       repo = repo,
     })
     if type(path) == "string" and path ~= "" and vim.uv.fs_stat(path) then
-      return status({ dir = path, source = "callback" }, name, rname)
+      return result(path, "callback")
     end
   end
 
@@ -188,23 +184,15 @@ local function resolve(name)
     and opt.detect ~= false
     and same_name(vim.fs.basename(repo), rname)
   then
-    return status({
-      dir = root,
-      source = "cwd",
-      extra = { repo = repo },
-    }, name, rname)
+    return result(root, "cwd", { repo = repo })
   end
 
   local fallback = opt.fallback
   if fallback and vim.uv.fs_stat(vim.fs.normalize(fallback)) then
-    return status(
-      { dir = vim.fs.normalize(fallback), source = "fallback" },
-      name,
-      rname
-    )
+    return result(vim.fs.normalize(fallback), "fallback")
   end
 
-  return status({ dir = nil, source = "none" }, name, rname)
+  return result(nil, "none")
 end
 
 ---@param name string
@@ -214,14 +202,6 @@ function M.status(name)
 end
 
 local notified = {}
-
---- Render a status as a single human readable line.
----@param s Devwhere.Status
----@return string
-function M.format(s)
-  local where = s.dir or "(none, manager's copy)"
-  return ("%s -> %s [%s]"):format(s.name, where, s.source)
-end
 
 --- Resolve a repo name to the local checkout to use, or nil when the
 --- plugin manager's installed copy should be used.
