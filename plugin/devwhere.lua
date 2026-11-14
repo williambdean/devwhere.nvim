@@ -9,6 +9,37 @@ local function complete()
   return vim.tbl_keys(devwhere.config.repos or {})
 end
 
+local source_hl = {
+  cwd = "String",
+  fallback = "Comment",
+  none = "Comment",
+  pinned = "Keyword",
+  env = "Keyword",
+  callback = "Keyword",
+}
+
+--- Render a status as highlighted echo chunks
+---@param s Devwhere.Status
+---@param last boolean omit the trailing newline
+---@return table chunks for nvim_echo
+local function chunks(s, last)
+  local where = s.dir or "(none, manager's copy)"
+  return {
+    { s.name .. " -> ", "Title" },
+    { where .. " [" .. s.source .. "]", source_hl[s.source] },
+    { last and "" or "\n" },
+  }
+end
+
+---@param statuses Devwhere.Status[]
+local function echo_status(statuses)
+  local out = {}
+  for i, s in ipairs(statuses) do
+    vim.list_extend(out, chunks(s, i == #statuses))
+  end
+  vim.api.nvim_echo(out, false, {})
+end
+
 vim.api.nvim_create_user_command("DevDir", function(opts)
   print(devwhere.dir(opts.args) or "(none)")
 end, {
@@ -19,7 +50,7 @@ end, {
 
 vim.api.nvim_create_user_command("DevStatus", function(opts)
   if opts.args ~= "" then
-    print(devwhere.format(devwhere.status(opts.args)))
+    echo_status({ devwhere.status(opts.args) })
     return
   end
   local names = vim.tbl_keys(devwhere.config.repos or {})
@@ -28,9 +59,11 @@ vim.api.nvim_create_user_command("DevStatus", function(opts)
     return
   end
   table.sort(names)
+  local statuses = {}
   for _, name in ipairs(names) do
-    print(devwhere.format(devwhere.status(name)))
+    table.insert(statuses, devwhere.status(name))
   end
+  echo_status(statuses)
 end, {
   nargs = "?",
   complete = complete,
