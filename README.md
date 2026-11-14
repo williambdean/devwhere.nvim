@@ -51,6 +51,23 @@ Given `require("devwhere").dir("octo.nvim")`, the first match wins:
    manager wiring, but the intent is always "use the manager's installed
    copy like devwhere was never involved"
 
+The same path, visually. (`repos[name].detect = false` skips the cwd
+branch entirely.)
+
+```mermaid
+flowchart TD
+    START["dir(name)"] --> PIN{"repos[name].dir set?"}
+    PIN -- "yes" --> PINNED["path [pinned]"]
+    PIN -- "no" --> ENV{"$NVIM_DEV_NAME<br/>set and exists?"}
+    ENV -- "yes" --> ENVP["path [env]"]
+    ENV -- "no" --> CB{"on_resolve(ctx)<br/>returns an existing path?"}
+    CB -- "yes" --> CBP["path [callback]"]
+    CB -- "no" --> GIT["find the git top level of cwd,<br/>follow the .git file back to the<br/>main repo when cwd is a<br/>linked worktree"]
+    GIT --> MATCH{"main repo name<br/>matches the repo?"}
+    MATCH -- "yes" --> CWDP["cwd's top level [cwd]"]
+    MATCH -- "no" --> NONE["nil [none]<br/>use the manager's<br/>installed copy"]
+```
+
 ## Usage
 
 Setup is fully optional; everything below is sugar:
