@@ -16,12 +16,13 @@ runtimepath and never talks to your plugin manager.
 ## Installation
 
 devwhere must be loadable before your plugin manager evaluates specs, so
-it has to be on the runtimepath up front. This is the same bootstrap
-pattern lazy.nvim itself uses, just earlier in your config:
+it has to be on the runtimepath up front. The clone location is arbitrary;
+the only requirements are that the clone exists when Neovim starts and
+that its path is prepended before your plugin manager's setup call:
 
 ```lua
--- at the top of your config, before require("lazy").setup()
-local dw = vim.fn.stdpath("data") .. "/lazy/devwhere.nvim"
+-- at the top of your config, before your plugin manager's setup
+local dw = vim.fn.stdpath("data") .. "/devwhere.nvim"
 if not vim.uv.fs_stat(dw) then
   vim.fn.system({
     "git", "clone", "--filter=blob:none",
@@ -32,9 +33,14 @@ vim.opt.rtp:prepend(dw)
 ```
 
 There is nothing to install after that; the module is ~200 dependency-free
-lines and evaluates instantly. Listing devwhere in your lazy spec too is
-harmless and keeps updates visible, but it is not what makes the require
-work.
+lines and evaluates instantly.
+
+Where the clone lives is up to you. If you use lazy.nvim, cloning into
+`stdpath("data") .. "/lazy/devwhere.nvim"` keeps it in the `:Lazy` UI, and
+listing devwhere in your lazy spec as well is harmless and keeps updates
+visible, but it is not what makes the require work. Managers that install
+git clones for you cannot install devwhere for you, since the require
+happens before they run.
 
 ## How it resolves
 
