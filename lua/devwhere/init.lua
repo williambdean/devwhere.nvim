@@ -161,15 +161,18 @@ local function resolve(name)
     return result(vim.fs.normalize(override), "env", { env_key = key })
   end
 
-  local cwd = vim.fs.normalize(vim.fn.getcwd())
-  local root = vim.fs.root(cwd, ".git")
+  -- nvim can start from a deleted working directory: getcwd() is empty
+  -- and uv.cwd() is nil, so cwd detection is impossible. Skip it and let
+  -- the later tiers answer instead.
+  local cwd = vim.fn.getcwd() or ""
+  local root = cwd ~= "" and vim.fs.root(vim.fs.normalize(cwd), ".git") or nil
   local repo = root and main_repo(root) or nil
 
   if M.config.on_resolve then
     local path = M.config.on_resolve({
       name = name,
       repo_name = rname,
-      cwd = cwd,
+      cwd = cwd ~= "" and vim.fs.normalize(cwd) or nil,
       root = root,
       repo = repo,
     })
